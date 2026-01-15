@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ملائكة الرحمة | منصة المحاضرات</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #27ae60;
+            --light-bg: #f8f9fa;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: var(--light-bg);
+            margin: 0;
+            scroll-behavior: smooth;
+        }
+
+        /* 1. القائمة الرئيسية (Hero Section) */
+        .hero {
+            height: 100vh;
+            background: linear-gradient(rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.8)), 
+                        url('https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'); /* يمكنك تغيير هذه الصورة برابط صورتك */
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            padding: 20px;
+        }
+
+        .hero h1 { font-size: 3rem; margin-bottom: 10px; }
+        .hero p { font-size: 1.5rem; font-style: italic; color: #ecf0f1; margin-bottom: 30px; }
+        
+        .btn-start {
+            padding: 15px 40px;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: bold;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+        }
+        .btn-start:hover { transform: scale(1.05); background: #219150; }
+
+        /* 2. قسم المحاضرات */
+        .container { max-width: 1000px; margin: 50px auto; padding: 0 20px; }
+        
+        .subject-card {
+            background: white;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .subject-header {
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .lecture-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+        }
+
+        .lecture-item:hover { background: #fdfdfd; }
+
+        .btn-link {
+            background: #eef2f7;
+            color: var(--primary);
+            padding: 8px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .btn-link:hover { background: var(--accent); color: white; }
+
+        /* إضافة صورة داخل الملف */
+        .profile-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid white;
+            margin-bottom: 20px;
+            object-fit: cover;
+        }
+
+        .status-msg { text-align: center; padding: 40px; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+    <section class="hero">
+        <img src="https://cdn-icons-png.flaticon.com/512/1021/1021799.png" alt="Logo" class="profile-img">
+        <h1>منصة المحاضرات الذكية</h1>
+        <p>" الممرضون هم ملائكة الرحمه "</p>
+        <a href="#lectures" class="btn-start">ابدأ تصفح المحاضرات</a>
+    </section>
+
+    <div class="container" id="lectures">
+        <div id="data-container">
+            <div class="status-msg">جاري تحميل البيانات...</div>
+        </div>
+    </div>
+
+    <script>
+        const sheetID = "1_fAReJybGj_tZ80LslShuLnERAAliJXqhEhNtsk_pGg";
+        const sheetName = "ورقة1"; 
+        const url = `https://opensheet.elk.sh/${sheetID}/${sheetName}`;
+
+        fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById("data-container");
+            container.innerHTML = "";
+
+            // تجميع حسب المادة
+            const grouped = data.reduce((acc, row) => {
+                const sub = row.المادة;
+                if (!acc[sub]) acc[sub] = [];
+                acc[sub].push(row);
+                return acc;
+            }, {});
+
+            for (const subject in grouped) {
+                let html = `
+                    <div class="subject-card">
+                        <div class="subject-header">
+                            <span><i class="fas fa-book-medical"></i> ${subject}</span>
+                            <small>${grouped[subject].length} محاضرات</small>
+                        </div>
+                        <div class="lecture-body">
+                `;
+
+                grouped[subject].forEach(lec => {
+                    html += `
+                        <div class="lecture-item">
+                            <div>
+                                <strong>${lec.المحاضرة}</strong><br>
+                                <small style="color: #999">📅 ${lec.التاريخ}</small>
+                            </div>
+                            <a href="${lec.الموقع}" target="_blank" class="btn-link">فتح <i class="fas fa-external-link-alt"></i></a>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+                container.innerHTML += html;
+            }
+        })
+        .catch(err => {
+            document.getElementById("data-container").innerHTML = "⚠️ خطأ في التحميل.";
+        });
+    </script>
+</body>
+</html>
