@@ -1,0 +1,91 @@
+# ---------------------------
+# Telegram Bot + Flask Web (Unified)
+# ---------------------------
+
+from flask import Flask, render_template_string
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, CallbackContext, Dispatcher
+import threading
+import sqlite3
+from datetime import datetime
+
+# ---------- إعداد البوت ----------
+BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
+
+# ---------- قاعدة البيانات ----------
+db = sqlite3.connect("hadiths.db", check_same_thread=False)
+cursor = db.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS hadiths (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    text TEXT NOT NULL,
+    category TEXT DEFAULT 'عام',
+    date_added TEXT
+)
+""")
+db.commit()
+
+# ---------- إضافة حديث ----------
+def add_hadith(update: Update, context: CallbackContext):
+    try:
+        if len(context.args) < 1:
+            update.message.reply_text("❌ الصيغة: /add [نص الحديث]")
+            return
+        text = " ".join(context.args)
+        date_added = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("INSERT INTO hadiths (text, date_added) VALUES (?, ?)", (text, date_added))
+        db.commit()
+        update.message.reply_text("✅ تم إضافة الحديث.")
+    except Exception as e:
+        update.message.reply_text(f"❌ خطأ: {e}")
+
+# ---------- Flask App ----------
+app = Flask(__name__)
+
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>أحاديث أهل البيت (ع)</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4; }
+        .hadith { background: #fff; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
+        .date { font-size: 0.8em; color: gray; text-align: right; }
+    </style>
+</head>
+<body>
+    <h1>أحاديث أهل البيت (ع)</h1>
+    {% for text, date in hadiths %}
+    <div class="hadith">
+        <p>{{ text }}</p>
+        <div class="date">{{ date }}</div>
+    </div>
+    {% endfor %}
+</body>
+</html>
+"""
+
+@app.route("/")
+def index():
+    cursor.execute("SELECT text, date_added FROM hadiths ORDER BY id DESC")
+    hadiths = cursor.fetchall()
+    return render_template_string(HTML_TEMPLATE, hadiths=hadiths)
+
+# ---------- تشغيل البوت ----------
+def run_bot():
+    updater = Updater(BOT_TOKEN, use_context=True)
+    dp: Dispatcher = updater.dispatcher
+    dp.add_handler(CommandHandler("add", add_hadith))
+    updater.start_polling()
+    updater.idle()
+
+# ---------- تشغيل Flask ----------
+def run_flask():
+    app.run(debug=False, use_reloader=False)
+
+# ---------- تشغيل البوت + الموقع معًا ----------
+if __name__ == "__main__":
+    threading.Thread(target=run_bot).start()
+    threading.Thread(target=run_flask).start()
